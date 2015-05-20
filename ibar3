@@ -1,3 +1,4 @@
+; mutate based on current 
 ; take sum (mean) method
 ;(require racket) ; for emacs to call REPL
 (require racket/gui/base) ; to have TV
@@ -13,7 +14,7 @@
 (define (load-data file-name)
   (let ([data (read-csv-file file-name)])
     (map string->number (flatten data))))
-   
+
 (define (load-and-plot file-name)
   (let ([data (read-csv-file file-name)])
     (plot-mean (map string->number (flatten data)))
@@ -307,7 +308,14 @@
   (let ([payoff-list (flatten (match-population population rounds-per-match))])
     (sort (hash->list (scan payoff-list)) #:key criterion >)))
 
-
+;; mutate on current
+(define (mutate-population population)
+  (let ([chosen-one (list->vector
+                     (identify (list-ref
+                                population
+                                (random (length population)))))])
+    (vector-set! chosen-one (random 10) (random 3))
+    (apply make-automaton (vector->list chosen-one))))
 
 (define (evolve population cycles speed per-type mutants rounds-per-match file-mean file-rank)
   (let* ([l (length population)]
@@ -320,7 +328,9 @@
          [successors
           (randomise-over-fitness accum-fitness population speed)]
          [mutation
-          (random-population per-type mutants)]
+          (flatten (make-list per-type
+                              (for/list ([i mutants])
+                                (mutate-population population))))]
          [new-population (shuffle (append survivors successors mutation))]
          )
     ;(set! series (append series (list (identify-2-types new-population))))
